@@ -136,16 +136,6 @@ data.ctrl[1] = right_wheel_speed
 * ROS2 (Humble or newer)
 * MuJoCo (Python bindings)
 * Python 3.10+
-
----
-
-# ▶️ Run
-
-```bash
-export MUJOCO_GL=egl
-ros2 run diffdrive_mujoco diffdrive_node
-```
-
 ---
 
 # 🧠 Architecture
