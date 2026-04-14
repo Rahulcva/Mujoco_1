@@ -1,0 +1,357 @@
+<mujoco> <!-- Root element of the MuJoCo model -->
+	
+	<asset>
+   
+    <texture name="grid" type="2d" builtin="checker" width="512" height="512" rgb1=".2 .3 .4" rgb2=".3 .4 .5"/>
+    <material name="grid_mat" texture="grid" texrepeat="10 10" reflectance="0.1"/>
+    <material name="ground_mat" rgba=".8 .8 .8 1" reflectance="0.1"/>
+</asset> 
+
+<visual>
+    <global offwidth="640" offheight="480"/>
+</visual>
+	<!-- Simulation options -->
+	<option gravity="0 0 -9.81" /> <!-- Set gravity (z-axis downward) -->
+	<worldbody> <!-- Contains all physical objects in the world -->
+        <!-- diffuse = light color/intensity, pos = position, dir = direction -->
+		 <!-- Multiple lights for better visualization -->
+<light diffuse=".5 .5 .5" pos="0 0 3" dir="0 0 -1" castshadow="true"/>
+<!-- castshadow="true" = shadows enable -->
+<light diffuse=".3 .3 .3" pos="2 2 2" dir="-1 -1 -1"/>
+<!-- Side light for fill -->
+<light diffuse=".2 .2 .2" pos="-2 -2 2" dir="1 1 -1"/>
+<!-- Back light for rim effect -->
+		<!-- Ground plane -->
+		 <!-- <geom type="plane" size="5 5 0.1" material="grid_mat"/> -->
+		 <geom type="plane" size="5 5 0.1" rgba=".9 .9 .9 1"/>
+		<!-- Large flat surface for robot to move on -->
+
+		<!-- Main robot body -->
+		<body name="chassis" pos="0 0 0.2" euler='0 90 0'>
+		<!-- pos = initial position (x,y,z)
+		     euler = rotation (degrees) -->
+
+			<!-- Free joint allows full 6-DOF movement (x,y,z + rotation) -->
+			<joint type="free"/>
+			
+             <!-- Camera housing (black box) -->
+            <geom name="front_cam_housing" type="box" pos="0 0 0.52" size="0.09 0.04 0.02" rgba="0.1 0.1 0.1 1"/>
+            <!-- Camera lens (blue) -->
+            <geom name="front_cam_lens" type="cylinder" pos="0 0 0.55" size="0.015 0.005" euler="90 0 0" rgba="0.2 0.4 0.8 1"/>
+            <!-- MuJoCo camera -->
+            <camera name="front_cam" pos="0 0 0.6" euler="0 0 0" fovy="60"/>
+            
+            <!-- ===== REAR CAMERA ===== -->
+            <!-- Camera housing (black box) -->
+            <geom name="rear_cam_housing" type="box" pos="0 0 -0.52" size="0.09 0.04 0.02" rgba="0.1 0.1 0.1 1"/>
+            <!-- Camera lens (red) -->
+            <geom name="rear_cam_lens" type="cylinder" pos="0 0 -0.55" size="0.015 0.005" euler="90 0 0" rgba="0.8 0.2 0.2 1"/>
+            <!-- MuJoCo camera -->
+            <camera name="rear_cam" pos="0 0 -0.6" euler="0 0 180" fovy="60"/>
+            <camera name="cam1" mode="trackcom" target="chassis" pos="0 0 1" fovy="60"/>
+
+			<!-- Chassis geometry (box shape) -->
+			<geom type="box" size=".05 .2 0.6" rgba=".9 .9 0 1"/>
+			<!-- size = half-lengths (x,y,z), color = yellow -->
+
+
+			<!-- Marker site (used for sensors/tracking) -->
+			<site name="marker" pos="0 0 0.0" size="0.14" rgba="1 0 0 0" />
+			<!-- A reference point on the robot -->
+        
+			<!-- Left wheel -->
+			<body name="left-tire" pos="0 0.26 -0.5" euler='90 0 0'>
+			<!-- Positioned to left side of chassis -->
+
+				<!-- Hinge joint for wheel rotation -->
+				<joint name="left-wheel" type="hinge" axis="0 0 -1"/>
+				<!-- Rotates around Z-axis -->
+
+
+
+				<!-- Wheel geometry -->
+				<geom type="cylinder" size=".2 0.05" rgba="0 .9 0 1" friction="0 0.1 0.1"/>
+
+				
+				<!-- size = radius, half-length -->
+			</body>
+
+			<!-- Right wheel -->
+			<body name="right-tire" pos="0 -0.26 -0.5" euler='90 0 0'>
+			<!-- Positioned to right side -->
+
+				<!-- Hinge joint -->
+				<joint name="right-wheel" type="hinge" axis="0 0 -1"/>
+
+				<!-- Wheel geometry -->
+				<geom type="cylinder" size=".2 0.05" rgba="0 .9 0 1" friction="0 0.1 0.1"/>
+			</body>
+						
+
+						<!-- CASTER WHEEL - Added at the back for stability -->
+			<body name="caster-wheel" pos="0 0 0.0" euler='0 0 0'>
+				<!-- Inertial properties for swivel base -->
+				<inertial pos="0 0 0" mass="0.5" diaginertia="0.001 0.001 0.001"/>
+				
+				<!-- Swivel joint - allows caster to rotate horizontally -->
+				<joint name="caster-swivel" type="hinge" axis="0 0 1" range="-180 180" damping="0.1"/>
+
+				<!-- Caster fork + wheel -->
+				<body name="caster-fork" pos="0 0 0.0" euler='0 0 0'>
+					<!-- Inertial properties for fork + wheel -->
+					<inertial pos="0 0 0" mass="0.3" diaginertia="0.0005 0.0005 0.0005"/>
+					
+					<!-- Wheel rotation joint -->
+					<joint name="caster-wheel-joint" type="hinge" axis="0 1 0"/>
+					
+					<!-- Caster wheel geometry -->
+					<geom type="sphere" size="0.14" rgba="0.5 0.5 0.5 1" mass="0.2"/>
+				</body>
+			</body>
+			<!-- END CASTER WHEEL -->
+
+		</body>
+	</worldbody>
+
+	<!-- Sensors -->
+	<sensor>
+		<!-- Tracks position of the "marker" site -->
+		<framepos objtype="site" objname="marker"/>
+		<!-- Outputs (x, y, z) of marker in world frame -->
+	</sensor>
+
+	<!-- Actuators (motors/controllers) -->
+	<actuator>
+
+		<!-- Velocity servo for left wheel -->
+		<velocity name="left-velocity-servo" joint="left-wheel" kv="100"/>
+		<!-- kv = gain (how strongly it tries to match target velocity) -->
+
+		<!-- Velocity servo for right wheel -->
+		<velocity name="right-velocity-servo" joint="right-wheel" kv="100"/>
+
+	</actuator>
+
+</mujoco> <!-- End of model -->
+
+
+
+
+<!-- 
+<joint name="left-wheel" type="hinge" axis="0 0 -1"/>
+<joint name="right-wheel" type="hinge" axis="0 0 -1"/>
+Type: Hinge Joint (1 DOF)
+Only rotates around one axis
+📌 Use:
+Perfect for wheels
+Like a motor shaft
+
+
+<framepos objtype="site" objname="marker"/>
+
+Tracks position of a site in world frame
+Output:
+(x, y, z)
+📌 Use:
+Robot tracking
+Navigation
+
+<velocity .../>
+
+Controls speed of joint, not torque
+📌 Use:
+Set wheel speed directly
+Ideal for:
+mobile robots
+simple control
+
+<velocity name="left-velocity-servo" joint="left-wheel" kv="100"/>
+
+kv="100" fast response of the robot kv 10 for slow response of the robot
+jointvel → measures speed
+velocity actuator → controls speed
+
+data.ctrl[0] = 5   # left wheel velocity
+data.ctrl[1] = 5   # right wheel velocity
+-->
+
+
+
+<!--  
+<joint name="left-wheel" type="hinge" axis="0 0 -1"/>
+<joint name="right-wheel" type="hinge" axis="0 0 -1"/>
+Type: Hinge Joint (1 DOF)
+Only rotates around one axis
+📌 Use:
+Perfect for wheels
+Like a motor shaft
+
+
+<framepos objtype="site" objname="marker"/>
+
+Tracks position of a site in world frame
+Output:
+(x, y, z)
+📌 Use:
+Robot tracking
+Navigation
+
+<velocity .../>
+
+Controls speed of joint, not torque
+📌 Use:
+Set wheel speed directly
+Ideal for:
+mobile robots
+simple control
+
+<velocity name="left-velocity-servo" joint="left-wheel" kv="100"/>
+this will control using data.ctrl[0] = 5   # left wheel velocity
+data.ctrl[1] = 5   # right wheel velocity
+
+kv="100" fast response of the robot kv 10 for slow response of the robot
+jointvel → measures speed
+velocity actuator → controls speed
+ -->
+<!--  mujoco a big box  
+ You put everything inside it:
+world
+objects
+physics  so that why we called it main container (root) -->
+<!--   after that use a gravity  -->
+<!--  worldbody is the main scene (world) of your simulation so whole world what u want to see inside it exits Everything you see (objects, robots, ground) goes inside this  -->
+<!--  <mujoco> = whole simulation
+<worldbody> = the world where things exist  -->
+<!--  geom = geometry (shape) this is actually u see -->
+<!--  <geom type="plane" size="5 5 0.1"/> 
+  <geom type="capsule" size="0.1 0.3"/>
+  <geom type="sphere" size="0.2"/>
+ <geom type="box" size="0.2 0.2 0.2"/>
+ <geom type="cylinder" size="0.1 0.3"/>
+ <geom type="mesh" mesh="myobject"/>
+
+ inside it we can use it friction="1 0.1 0.1" for realtistic friction condition friction = (sliding  torsional  rolling)
+ 
+ sliding:controls whether the object will slide or stop
+  torsional :resistance when the object is rotating (spinning) 
+ rolling: slows down the rolling motion of the object
+
+ Value	Meaning
+1	sliding friction
+0.1	torsional friction
+0.1	rolling friction
+
+
+solref="-1000 -10" solref = stiffness   damping use parameter
+  -->
+<!--  <geom type="plane" size="10 10 0.1" rgba="0.3 0.6 0.3 1"/>  -->
+<!--  if u want real world plane structure so u need to have png image 
+  
+ <asset>
+        <texture name="grass" type="2d" file="gb.png"/>
+        <material name="grass_mat" texture="grass"/>
+    </asset>
+<worldbody>
+<geom type="plane" size="10 10 0.1"  material="grass_mat"/>
+
+import like this 
+
+ <asset>
+        <texture name="grass" type="2d" file="gb.png"/>
+        <material name="grass_mat" texture="grass"/>
+    </asset>
+<worldbody>
+<geom type="plane" size="10 10 0.1"
+              material="grass_mat"
+              friction="1 0.1 0.1"/>
+ 
+
+			  fromto = x1 y1 z1   x2 y2 z2 helpful arm case 
+
+			  start point → (0,0,0)
+end point → (1,0,0)
+
+
+  -->
+<!--  
+ 
+ <body> = physical object / frame in space
+
+ pos position (x y z)  <body pos="0 0 1">
+ quat <body quat="1 0 0 0">
+ euler <body euler="0 0 45">
+ name <body name="box1">
+ mass <body mass="2">
+
+ <body>
+    <body>
+    </body>
+</body>
+  -->
+<!--  joint <joint type="hinge"/ 
+  axis="0 0 1" >
+  slide = Prismatic (P)
+  ball= Spherical joint
+
+  in mujoco dont have fixed joint 
+  but it have free Floating base / Free joint move anywhere drone humanoid mobile robot etc 
+  -->
+<!--   
+
+  <camera name="mycam" pos="2 2 2" xyaxes="-1 0 0 0 -1 1"/>  xyaxes = [X-axis vector, Y-axis vector]
+  -->
+<!--  
+ 
+ <sensor>
+  <jointpos joint="hinge1"/>
+</sensor> Get angle (hinge) or position (slide)
+Used in RL / control
+
+👉 Example:
+Robot arm angle
+Slider position
+
+ -->
+<!--  
+<sensor>
+  <jointvel joint="hinge1"/>
+</sensor>
+ -->
+<!--  
+
+Measure speed
+Important for:
+PID control
+stability
+ -->
+<!--  
+<sensor>
+  <jointforce joint="hinge1"/>
+</sensor>
+
+
+
+Measures torque (hinge) or force (slide)
+Useful for:
+detecting load
+contact feedback
+robotics grasping
+ -->
+<!--  
+<sensor>
+  <actuatorfrc actuator="motor1"/>
+</sensor>
+
+
+How much force your motor is applying
+Useful for debugging control
+ -->
+<!--  
+<sensor>
+  <ballangvel joint="ball1"/>
+</sensor>
+
+
+3D rotation tracking
+humanoid joints (shoulder, hip)
+ -->
